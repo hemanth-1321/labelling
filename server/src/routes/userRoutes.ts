@@ -65,6 +65,7 @@ router.post("/signin", async (req, res) => {
     });
   }
 });
+
 router.post("/task", authMiddleware, async (req, res) => {
   try {
     //@ts-ignore
@@ -118,5 +119,59 @@ router.post("/task", authMiddleware, async (req, res) => {
     return;
   }
 });
+
+router.get("/task",async(req,res)=>{
+    //@ts-ignore
+  const user_id=req.userId
+  //@ts-ignore
+  const taskId:string=req.query.taskIsd
+
+  const taskDetails=await prisma.task.findFirst({
+    where:{
+      user_id,
+      id:taskId
+    },
+    include:{
+      Options:true
+    }
+  })
+
+  if(!taskDetails){
+    res.status(404).json({
+      message:"task Details not found"
+    })
+    return
+  }
+
+const response=await prisma.submission.findMany({
+  where:{
+    task_id:taskId
+  },
+  include:{
+    option:true
+  }
+})
+  const result:Record<string,{
+    count:number,
+    option:{
+      imageUrl:string
+    }
+  }>={}
+
+  taskDetails.Options.forEach(option=>{
+    result[option.id]={
+      count:0 ,
+    option:{
+  imageUrl:option.image_url
+}
+    }
+  })
+  response.forEach(r=>{
+  
+      result[r.option_id].count++
+  
+  })
+res.status(201).json(result)
+})
 
 export default router;
